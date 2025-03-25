@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "description": "A tool for repairing corrupted PDF files",
   "main": "index.js",
+  "engines": {
+    "node": "20.x",
+    "npm": "10.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p $PORT",
     "lint": "next lint",
     "test": "jest",
     "test:unit": "jest --config jest.config.js --testMatch '**/tests/unit/**/*.test.ts'",
@@ -16,7 +20,8 @@
     "test:e2e:watch": "jest --config jest.config.js --testMatch '**/tests/e2e/**/*.test.ts' --watch",
     "test:performance": "jest --config jest.config.js --testMatch '**/tests/performance/**/*.test.ts' --runInBand",
     "test:all": "jest --config jest.config.js",
-    "generate-test-pdfs": "ts-node scripts/generate-test-pdfs.ts"
+    "generate-test-pdfs": "ts-node scripts/generate-test-pdfs.ts",
+    "heroku-postbuild": "npm run build"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
