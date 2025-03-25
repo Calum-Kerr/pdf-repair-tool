@@ -266,7 +266,61 @@ export class BatchProcessor extends EventEmitter {
     const job = this.activeJobs.get(jobId);
     if (job) {
       job.progress = progress;
-      this.emit('progressUpdate', { jobId, progress });
+      this.emit('progress', { jobId, progress });
     }
+  }
+
+  /**
+   * Process multiple files at once
+   * @param jobs Array of jobs to process
+   * @returns Array of processed jobs
+   */
+  async processFiles(jobs: { id: string; file: File; status: 'queued' }[]): Promise<BatchJob[]> {
+    const results: BatchJob[] = [];
+    
+    for (const job of jobs) {
+      try {
+        // Convert File to path (store in temp location)
+        const arrayBuffer = await job.file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const tempPath = await securelyStoreFile(buffer, {
+          originalName: job.file.name,
+          mimeType: job.file.type,
+          size: job.file.size
+        });
+        
+        // Add job to processor
+        const jobId = this.addJob(tempPath);
+        
+        // Wait for job completion
+        const processedJob = await new Promise<BatchJob>((resolve, reject) => {
+          const checkStatus = () => {
+            const status = this.getJobStatus(jobId);
+            if (status?.status === 'completed') {
+              resolve(status);
+            } else if (status?.status === 'failed') {
+              reject(new Error(status.error || 'Processing failed'));
+            } else {
+              setTimeout(checkStatus, 1000);
+            }
+          };
+          checkStatus();
+        });
+        
+        results.push(processedJob);
+      } catch (error) {
+        this.emit('error', { jobId: job.id, error });
+        results.push({
+          id: job.id,
+          filePath: '',
+          status: 'failed',
+          progress: 0,
+          retries: 0,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+    
+    return results;
   }
 } 

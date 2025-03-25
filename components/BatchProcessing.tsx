@@ -85,7 +85,7 @@ export const BatchProcessing: React.FC<BatchProcessingProps> = ({
     setPaused(false);
 
     try {
-      const processor = new BatchProcessor();
+      const processor = new BatchProcessor('./data/reports');
 
       // Add all files to the processor
       const jobs = files.map(file => ({
