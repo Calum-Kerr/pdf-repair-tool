@@ -7,6 +7,7 @@
     "node": "20.x",
     "npm": "10.x"
   },
+  "cacheDirectories": [".next/cache"],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

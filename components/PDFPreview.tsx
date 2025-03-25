@@ -14,18 +14,27 @@ interface PDFPreviewProps {
   onError?: (error: Error) => void;
 }
 
+interface PDFMetadata {
+  info: {
+    Title?: string;
+    Author?: string;
+    CreationDate?: string;
+    [key: string]: any;
+  };
+}
+
 interface PDFInfo {
   numPages: number;
-  title?: string;
-  author?: string;
-  creationDate?: string;
+  title: string;
+  author: string;
+  creationDate: string;
   fileSize: string;
 }
 
 export const PDFPreview: React.FC<PDFPreviewProps> = ({ file, onError }) => {
   const [pdfInfo, setPdfInfo] = useState<PDFInfo | null>(null);
   const [thumbnails, setThumbnails] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isDarkMode } = useTheme();
 
@@ -38,25 +47,16 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ file, onError }) => {
   };
 
   useEffect(() => {
+    if (!file) {
+      setLoading(false);
+      return;
+    }
+
     const loadPDFInfo = async () => {
-      if (!file) {
-        setPdfInfo(null);
-        setThumbnails([]);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
       try {
-        // Load PDF document
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-
-        // Get document metadata
-        const metadata = await pdf.getMetadata();
-
-        // Generate thumbnails for first 3 pages
+        const pdf = await pdfjs.getDocument(arrayBuffer).promise;
+        const metadata = await pdf.getMetadata() as PDFMetadata;
         const thumbs: string[] = [];
         const maxThumbnails = Math.min(3, pdf.numPages);
         
