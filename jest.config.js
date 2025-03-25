@@ -1,7 +1,7 @@
 module.exports = {
   preset: 'jest-puppeteer',
   testMatch: [
-    '**/tests/e2e/**/*.test.ts'
+    '**/tests/**/*.test.ts'
   ],
   transform: {
     '^.+\\.ts$': 'ts-jest'
@@ -12,5 +12,8 @@ module.exports = {
     'ts-jest': {
       tsconfig: 'tsconfig.jest.json'
     }
+  },
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/app/$1'
   }
 }; 
