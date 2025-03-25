@@ -6,6 +6,10 @@ import { Progress } from '@/components/ui/progress';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { PDFUploader } from './components/PDFUploader';
+import { PDFList } from './components/PDFList';
+import { ConsentManager } from './components/ConsentManager';
+import { ConsentHistory } from './components/ConsentHistory';
 
 interface RepairStatus {
   stage: 'idle' | 'uploading' | 'analyzing' | 'extracting' | 'generating' | 'complete' | 'error';
@@ -28,6 +32,20 @@ export default function Home() {
   });
   const [extractedContent, setExtractedContent] = useState<ExtractedContent[]>([]);
   const [repairedPdfUrl, setRepairedPdfUrl] = useState<string | null>(null);
+  const [pdfs, setPdfs] = useState<Array<{
+    id: string;
+    name: string;
+    size: number;
+    uploadDate: Date;
+    status: 'processing' | 'completed' | 'failed';
+  }>>([]);
+
+  // Add user information state
+  const [userInfo] = useState({
+    userId: 'default-user', // In a real app, this would come from authentication
+    ipAddress: typeof window !== 'undefined' ? window.location.hostname : 'unknown',
+    userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown'
+  });
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -79,100 +97,122 @@ export default function Home() {
     maxFiles: 1,
   });
 
+  const handleDownload = (id: string) => {
+    const pdf = pdfs.find(p => p.id === id);
+    if (pdf && repairedPdfUrl) {
+      const link = document.createElement('a');
+      link.href = repairedPdfUrl;
+      link.download = `repaired_${pdf.name}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const handleDelete = (id: string) => {
+    setPdfs(current => current.filter(pdf => pdf.id !== id));
+  };
+
   return (
     <main className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-8">PDF Repair Tool</h1>
       
-      <Tabs defaultValue="upload" className="w-full">
-        <TabsList>
-          <TabsTrigger value="upload">Upload</TabsTrigger>
-          <TabsTrigger value="content">Content</TabsTrigger>
-          <TabsTrigger value="details">Details</TabsTrigger>
-        </TabsList>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">Upload PDF</h2>
+          <PDFUploader 
+            onFileUpload={async (file) => {
+              let newPdf = {
+                id: Date.now().toString(),
+                name: file.name,
+                size: file.size,
+                uploadDate: new Date(),
+                status: 'processing' as const
+              };
 
-        <TabsContent value="upload">
-          <Card className="p-6">
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-                ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}`}
-            >
-              <input {...getInputProps()} />
-              <p className="text-lg">
-                {isDragActive
-                  ? 'Drop the PDF file here'
-                  : 'Drag and drop a PDF file here, or click to select'}
-              </p>
-            </div>
+              try {
+                setStatus({ stage: 'uploading', progress: 0, message: 'Reading PDF file...' });
+                
+                // Add the PDF to the list
+                setPdfs(current => [...current, newPdf]);
 
-            {status.stage !== 'idle' && (
-              <div className="mt-6">
-                <Progress value={status.progress} className="mb-2" />
-                <p className="text-sm text-muted-foreground">{status.message}</p>
-              </div>
-            )}
+                const arrayBuffer = await file.arrayBuffer();
+                
+                setStatus({ stage: 'analyzing', progress: 20, message: 'Analyzing PDF structure...' });
+                const content = await analyzePdf(arrayBuffer);
+                
+                setStatus({ stage: 'extracting', progress: 40, message: 'Extracting content...' });
+                const extracted = await extractContent(content);
+                setExtractedContent(extracted);
+                
+                setStatus({ stage: 'generating', progress: 80, message: 'Generating repaired PDF...' });
+                const repairedPdf = await generateRepairedPdf(extracted);
+                
+                const url = URL.createObjectURL(repairedPdf);
+                setRepairedPdfUrl(url);
+                
+                // Update PDF status to completed
+                setPdfs(current => current.map(pdf => 
+                  pdf.id === newPdf.id 
+                    ? { ...pdf, status: 'completed' as const }
+                    : pdf
+                ));
+                
+                setStatus({ stage: 'complete', progress: 100, message: 'PDF repair completed successfully' });
+                return true;
+              } catch (error) {
+                // Update PDF status to failed
+                setPdfs(current => current.map(pdf => 
+                  pdf.id === newPdf.id 
+                    ? { ...pdf, status: 'failed' as const }
+                    : pdf
+                ));
 
-            {status.stage === 'error' && (
-              <Alert variant="destructive" className="mt-4">
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{status.error}</AlertDescription>
-              </Alert>
-            )}
+                setStatus({
+                  stage: 'error',
+                  progress: 0,
+                  message: 'Failed to repair PDF',
+                  error: error instanceof Error ? error.message : 'Unknown error occurred',
+                });
+                return false;
+              }
+            }}
+            onUploadComplete={(success) => {
+              if (!success) {
+                setStatus({
+                  stage: 'error',
+                  progress: 0,
+                  message: 'Failed to process PDF',
+                  error: 'Upload failed',
+                });
+              }
+            }}
+          />
+        </div>
+        
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">Your PDFs</h2>
+          <PDFList 
+            pdfs={pdfs}
+            onDownload={handleDownload}
+            onDelete={handleDelete}
+          />
+        </div>
+      </div>
 
-            {repairedPdfUrl && (
-              <a
-                href={repairedPdfUrl}
-                download="repaired.pdf"
-                className="mt-4 inline-block px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-              >
-                Download Repaired PDF
-              </a>
-            )}
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="content">
-          <Card className="p-6">
-            {extractedContent.length > 0 ? (
-              <div className="space-y-4">
-                {extractedContent.map((content, index) => (
-                  <div key={index} className="border rounded p-4">
-                    <h3 className="font-semibold mb-2">Method: {content.method}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Confidence: {Math.round(content.confidence * 100)}%
-                    </p>
-                    <pre className="bg-muted p-4 rounded overflow-auto max-h-96">
-                      {content.text}
-                    </pre>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">No content extracted yet</p>
-            )}
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="details">
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Repair Process Details</h2>
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-medium">Current Stage</h3>
-                <p className="text-muted-foreground capitalize">{status.stage}</p>
-              </div>
-              <div>
-                <h3 className="font-medium">Progress</h3>
-                <p className="text-muted-foreground">{status.progress}%</p>
-              </div>
-              <div>
-                <h3 className="font-medium">Status Message</h3>
-                <p className="text-muted-foreground">{status.message}</p>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <div className="mt-12">
+        <h2 className="text-2xl font-semibold mb-4">Consent Management</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <ConsentManager 
+            userId={userInfo.userId}
+            ipAddress={userInfo.ipAddress}
+            userAgent={userInfo.userAgent}
+          />
+          <ConsentHistory 
+            userId={userInfo.userId}
+          />
+        </div>
+      </div>
     </main>
   );
 }

@@ -1,0 +1,42 @@
+[
+  {
+    "userId": "default-user",
+    "consentType": "analytics",
+    "granted": true,
+    "timestamp": "2025-03-25T21:38:30.745Z",
+    "ipAddress": "localhost",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
+  },
+  {
+    "userId": "default-user",
+    "consentType": "marketing",
+    "granted": true,
+    "timestamp": "2025-03-25T21:38:31.177Z",
+    "ipAddress": "localhost",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
+  },
+  {
+    "userId": "default-user",
+    "consentType": "processing",
+    "granted": true,
+    "timestamp": "2025-03-25T21:32:11.247Z",
+    "ipAddress": "localhost",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
+  },
+  {
+    "userId": "default-user",
+    "consentType": "cookies",
+    "granted": true,
+    "timestamp": "2025-03-25T21:32:11.942Z",
+    "ipAddress": "localhost",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
+  },
+  {
+    "userId": "default-user",
+    "consentType": "data_processing",
+    "granted": true,
+    "timestamp": "2025-03-25T21:38:31.576Z",
+    "ipAddress": "localhost",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
+  }
+]

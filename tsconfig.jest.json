@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react",
+    "types": ["jest", "jest-puppeteer", "puppeteer", "node"]
+  },
+  "include": [
+    "tests/**/*.ts",
+    "tests/**/*.tsx"
+  ]
+} 
